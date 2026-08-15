@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: votacao
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/votacao
+    username: votacao
+    password: votacao
+    hikari:
+      pool-name: votacao-pool
+      maximum-pool-size: 20
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          # Grava e le timestamptz sempre em UTC, para que Instant nao dependa do fuso da JVM
+          time_zone: UTC
+
+  flyway:
+    locations: classpath:db/migration
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.db.votacao: INFO
