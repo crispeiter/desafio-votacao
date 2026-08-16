@@ -8,4 +8,6 @@ public interface SessaoVotacaoRepository extends JpaRepository<SessaoVotacao, Lo
 
 	Optional<SessaoVotacao> findByPautaId(Long pautaId);
 
+	boolean existsByPautaId(Long pautaId);
+
 }
