@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 // Os endpoints /api/v1/telas/** nao chegam aqui: o TelaController declara os proprios
 // @ExceptionHandler, que tem precedencia sobre o advice, e devolve tela em vez de
-// ProblemDetail. Ver secao 5.1 da especificacao.
+// ProblemDetail.
 @RestControllerAdvice
 public class TratadorDeErros {
 
@@ -26,7 +26,7 @@ public class TratadorDeErros {
 		return problema(HttpStatus.NOT_FOUND, "Recurso não encontrado", excecao.getMessage());
 	}
 
-	// 404, e nao 403, por instrucao explicita do enunciado. Decisao registrada no README.
+	// 404, e nao 403, por instrucao explicita do enunciado.
 	@ExceptionHandler(AssociadoNaoAutorizadoException.class)
 	public ProblemDetail tratarAssociadoNaoAutorizado(AssociadoNaoAutorizadoException excecao) {
 		return problema(HttpStatus.NOT_FOUND, "Associado não autorizado", excecao.getMessage());
