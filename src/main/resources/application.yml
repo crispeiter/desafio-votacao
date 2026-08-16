@@ -23,6 +23,20 @@ spring:
   flyway:
     locations: classpath:db/migration
 
+votacao:
+  sessao:
+    duracao-padrao: 60s
+
+  cpf:
+    modo: ALEATORIO
+    # O servico fake de autorizacao roda dentro desta mesma aplicacao, entao o default
+    # aponta para ela. Trocar pelo provedor real e mudanca de configuracao, nao de codigo.
+    base-url: http://localhost:8080
+
+  # Sem o prefixo /api/v1: o assembler de telas concatena o path completo de cada endpoint.
+  # Sobrescrever por VOTACAO_CALLBACK_BASE_URL quando o app rodar em dispositivo fisico.
+  callback-base-url: http://localhost:8080
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
