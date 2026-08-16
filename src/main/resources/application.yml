@@ -32,6 +32,8 @@ votacao:
     # O servico fake de autorizacao roda dentro desta mesma aplicacao, entao o default
     # aponta para ela. Trocar pelo provedor real e mudanca de configuracao, nao de codigo.
     base-url: http://localhost:8080
+    timeout-conexao: 2s
+    timeout-leitura: 3s
 
   # Sem o prefixo /api/v1: o assembler de telas concatena o path completo de cada endpoint.
   # Sobrescrever por VOTACAO_CALLBACK_BASE_URL quando o app rodar em dispositivo fisico.

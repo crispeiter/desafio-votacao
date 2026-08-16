@@ -37,7 +37,19 @@ public record VotacaoProperties(
 
 			@NotNull ModoValidacaoCpf modo,
 
-			@NotBlank String baseUrl) {
+			@NotBlank String baseUrl,
+
+			// Teto de poucos segundos porque a consulta acontece dentro da requisicao de voto:
+			// provedor lento precisa falhar rapido em vez de prender a thread e o pool de conexao.
+			@NotNull
+			@DurationMin(millis = 100)
+			@DurationMax(seconds = 10)
+			Duration timeoutConexao,
+
+			@NotNull
+			@DurationMin(millis = 100)
+			@DurationMax(seconds = 10)
+			Duration timeoutLeitura) {
 	}
 
 }
