@@ -1,6 +1,8 @@
 package com.db.votacao.voto;
 
 import java.time.Clock;
+import java.util.EnumMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +18,9 @@ import com.db.votacao.cpf.StatusAssociado;
 import com.db.votacao.sessao.SessaoVotacao;
 import com.db.votacao.sessao.SessaoVotacaoService;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 @Service
 public class VotoService {
 
@@ -25,13 +30,28 @@ public class VotoService {
 	private final SessaoVotacaoService sessaoVotacaoService;
 	private final CpfAutorizacaoClient cpfAutorizacaoClient;
 	private final Clock clock;
+	private final Map<OpcaoVoto, Counter> votosRegistrados;
 
 	public VotoService(VotoRepository votoRepository, SessaoVotacaoService sessaoVotacaoService,
-			CpfAutorizacaoClient cpfAutorizacaoClient, Clock clock) {
+			CpfAutorizacaoClient cpfAutorizacaoClient, Clock clock, MeterRegistry registro) {
 		this.votoRepository = votoRepository;
 		this.sessaoVotacaoService = sessaoVotacaoService;
 		this.cpfAutorizacaoClient = cpfAutorizacaoClient;
 		this.clock = clock;
+		this.votosRegistrados = contadoresPorOpcao(registro);
+	}
+
+	// Os dois contadores nascem no start, e nao no primeiro voto de cada opcao: serie que so
+	// aparece depois do primeiro incremento vira buraco no grafico e alerta sem dado.
+	private static Map<OpcaoVoto, Counter> contadoresPorOpcao(MeterRegistry registro) {
+		Map<OpcaoVoto, Counter> contadores = new EnumMap<>(OpcaoVoto.class);
+		for (OpcaoVoto opcao : OpcaoVoto.values()) {
+			contadores.put(opcao, Counter.builder("votacao.votos.registrados")
+					.description("Total de votos registrados por opcao")
+					.tag("opcao", opcao.name())
+					.register(registro));
+		}
+		return contadores;
 	}
 
 	@Transactional
@@ -67,6 +87,7 @@ public class VotoService {
 		try {
 			Voto voto = votoRepository.save(new Voto(sessao, cpfAssociado, opcao, clock.instant()));
 			log.info("Voto registrado. pautaId={} sessaoId={} opcao={}", pautaId, sessao.getId(), opcao);
+			votosRegistrados.get(opcao).increment();
 			return voto;
 		} catch (DataIntegrityViolationException excecao) {
 			log.info("Tentativa de voto duplicado. pautaId={}", pautaId);
