@@ -2,6 +2,7 @@ package com.db.votacao.sessao;
 
 import java.net.URI;
 
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +16,10 @@ import com.db.votacao.sessao.dto.AbrirSessaoRequest;
 import com.db.votacao.sessao.dto.SessaoResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
@@ -32,6 +37,15 @@ public class SessaoController {
 	@Operation(summary = "Abre a sessão de votação da pauta",
 			description = "O corpo é opcional. Sem ele, ou sem duracaoEmSegundos, a sessão dura o padrão configurado "
 					+ "de 60 segundos. A duração aceita vai de 1 a 86400 segundos.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Sessão aberta, com a URI dela no header Location"),
+			@ApiResponse(responseCode = "400", description = "Duração fora da faixa de 1 a 86400 segundos",
+					content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+			@ApiResponse(responseCode = "404", description = "Não existe pauta com o identificador informado",
+					content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+			@ApiResponse(responseCode = "409", description = "A pauta já possui sessão de votação",
+					content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+	})
 	@PostMapping
 	public ResponseEntity<SessaoResponse> abrir(@PathVariable Long pautaId,
 			@RequestBody(required = false) @Valid AbrirSessaoRequest request, UriComponentsBuilder uriBuilder) {
@@ -42,6 +56,12 @@ public class SessaoController {
 	}
 
 	@Operation(summary = "Consulta a sessão de votação da pauta")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Sessão encontrada, com o status calculado no momento "
+					+ "da consulta"),
+			@ApiResponse(responseCode = "404", description = "Pauta inexistente ou sem sessão de votação",
+					content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+	})
 	@GetMapping
 	public SessaoResponse buscar(@PathVariable Long pautaId) {
 		return paraResponse(sessaoVotacaoService.buscarPorPauta(pautaId));
