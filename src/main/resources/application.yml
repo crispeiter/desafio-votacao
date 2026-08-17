@@ -40,6 +40,10 @@ votacao:
   callback-base-url: http://localhost:8080
 
 springdoc:
+  # Sem isso o springdoc aplica os @ExceptionHandler genericamente e sobrescreve a descricao do
+  # 200 das telas, justamente a camada onde o erro tambem chega como 200 com corpo de tela.
+  override-with-generic-response: false
+
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
