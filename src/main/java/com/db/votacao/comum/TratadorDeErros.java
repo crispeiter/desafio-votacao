@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -57,6 +58,15 @@ public class TratadorDeErros {
 
 	@ExceptionHandler(Exception.class)
 	public ProblemDetail tratarErroInesperado(Exception excecao) {
+		// Excecao que o proprio Spring ja descreve, como rota inexistente, metodo nao suportado ou
+		// midia nao aceita, mantem o status dela. Sem esta saida antecipada o catch-all abaixo
+		// transformaria um 404 legitimo em 500 com stacktrace, escondendo o erro real de quem chama.
+		if (excecao instanceof ErrorResponse resposta) {
+			log.info("Requisicao nao atendida. status={} tipo={}", resposta.getStatusCode().value(),
+					excecao.getClass().getSimpleName());
+			return resposta.getBody();
+		}
+
 		log.error("Erro inesperado ao processar a requisicao", excecao);
 		return problema(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno",
 				"Ocorreu um erro inesperado ao processar a requisição.");
