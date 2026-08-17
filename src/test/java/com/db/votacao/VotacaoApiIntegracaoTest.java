@@ -1,7 +1,10 @@
 package com.db.votacao;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -12,6 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.ServerSocket;
+import java.time.Duration;
+import java.time.Instant;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -92,6 +97,77 @@ class VotacaoApiIntegracaoTest {
 				.andExpect(jsonPath("$.votosSim").value(2))
 				.andExpect(jsonPath("$.votosNao").value(1))
 				.andExpect(jsonPath("$.resultado").value("APROVADA"));
+	}
+
+	@Test
+	void deveListarAsPautasCadastradas() throws Exception {
+		criarPauta("Reforma do estatuto social");
+		criarPauta("Prestacao de contas de 2025");
+
+		mockMvc.perform(get("/api/v1/pautas"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(2)))
+				.andExpect(jsonPath("$[0].id").exists())
+				.andExpect(jsonPath("$[*].titulo").value(
+						containsInAnyOrder("Reforma do estatuto social", "Prestacao de contas de 2025")));
+	}
+
+	@Test
+	void deveBuscarPautaPeloIdentificador() throws Exception {
+		long pautaId = criarPauta("Reforma do estatuto social");
+
+		mockMvc.perform(get("/api/v1/pautas/{id}", pautaId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(pautaId))
+				.andExpect(jsonPath("$.titulo").value("Reforma do estatuto social"))
+				.andExpect(jsonPath("$.descricao").value("Descricao da pauta"))
+				.andExpect(jsonPath("$.criadaEm").exists());
+	}
+
+	@Test
+	void deveDevolverNaoEncontradoAoBuscarPautaInexistente() throws Exception {
+		mockMvc.perform(get("/api/v1/pautas/{id}", 404L))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.detail").value(containsString("404")));
+	}
+
+	@Test
+	void deveConsultarASessaoDaPautaComOStatusDoMomento() throws Exception {
+		long pautaId = criarPauta("Reforma do estatuto social");
+		abrirSessao(pautaId, 300).andExpect(status().isCreated());
+
+		mockMvc.perform(get("/api/v1/pautas/{pautaId}/sessao", pautaId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").exists())
+				.andExpect(jsonPath("$.pautaId").value(pautaId))
+				.andExpect(jsonPath("$.status").value("ABERTA"));
+	}
+
+	@Test
+	void deveDevolverNaoEncontradoAoConsultarSessaoDePautaSemSessao() throws Exception {
+		long pautaId = criarPauta("Pauta sem sessao");
+
+		mockMvc.perform(get("/api/v1/pautas/{pautaId}/sessao", pautaId))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.detail").value(containsString("sess")));
+	}
+
+	@Test
+	void deveAbrirSessaoDeSessentaSegundosQuandoARequisicaoNaoTemCorpo() throws Exception {
+		long pautaId = criarPauta("Reforma do estatuto social");
+
+		// Requisicao sem corpo algum, e nao corpo vazio: e o caminho do enunciado, "um minuto por
+		// default", e o unico que exercita o request nulo no controller.
+		String corpo = mockMvc.perform(post("/api/v1/pautas/{pautaId}/sessao", pautaId))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.status").value("ABERTA"))
+				.andReturn()
+				.getResponse()
+				.getContentAsString();
+
+		Instant abertaEm = Instant.parse(JsonPath.read(corpo, "$.abertaEm"));
+		Instant encerraEm = Instant.parse(JsonPath.read(corpo, "$.encerraEm"));
+		assertEquals(60, Duration.between(abertaEm, encerraEm).toSeconds());
 	}
 
 	@Test
