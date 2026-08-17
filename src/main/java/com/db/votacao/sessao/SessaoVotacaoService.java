@@ -3,6 +3,7 @@ package com.db.votacao.sessao;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,11 @@ public class SessaoVotacaoService {
 		return sessaoVotacaoRepository.findByPautaId(pautaId)
 				.orElseThrow(() -> new RecursoNaoEncontradoException(
 						"A pauta " + pautaId + " não possui sessão de votação."));
+	}
+
+	@Transactional(readOnly = true)
+	public List<SessaoVotacao> listarAbertas() {
+		return sessaoVotacaoRepository.buscarAbertasEm(clock.instant());
 	}
 
 	public StatusSessao statusAtual(SessaoVotacao sessao) {
