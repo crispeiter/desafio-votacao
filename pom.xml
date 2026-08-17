@@ -29,6 +29,12 @@
 	<properties>
 		<java.version>21</java.version>
 		<springdoc.version>3.1.0</springdoc.version>
+
+		<jacoco.version>0.8.15</jacoco.version>
+
+		<!-- Vazia por padrao para que a linha de comando do surefire continue valida quando o
+		     prepare-agent do JaCoCo nao roda, como em mvn surefire:test avulso. -->
+		<jacocoArgLine/>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -139,10 +145,39 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<!-- Mockito carregado como agente ja na linha de comando. Sem isso ele se
-					     auto-anexa em tempo de execucao, o que a JDK esta em vias de proibir. -->
-					<argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+					<!-- Os dois agentes na mesma linha, e nao um sobrescrevendo o outro: o do JaCoCo
+					     chega pela propriedade jacocoArgLine, e o do Mockito evita que ele se
+					     auto-anexe em tempo de execucao, o que a JDK esta em vias de proibir.
+					     A sintaxe @{} e obrigatoria no primeiro: com ${} o valor vazio declarado
+					     em properties seria congelado aqui antes de o prepare-agent rodar. -->
+					<argLine>@{jacocoArgLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
 				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<id>prepara-agente</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+						<configuration>
+							<!-- Nome proprio em vez do argLine padrao, que ja pertence ao agente do
+							     Mockito na configuracao do surefire acima. -->
+							<propertyName>jacocoArgLine</propertyName>
+						</configuration>
+					</execution>
+					<execution>
+						<id>gera-relatorio</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
