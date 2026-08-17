@@ -17,6 +17,9 @@ import com.db.votacao.cpf.ModoValidacaoCpf;
 import com.db.votacao.cpf.StatusAssociado;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 // Vive fora do /api/v1 porque nao faz parte da API de votacao: e o provedor externo simulado,
@@ -38,6 +41,11 @@ public class AutorizacaoCpfFakeController {
 	@Operation(summary = "Consulta se o portador do CPF está apto a votar",
 			description = "CPF com formato ou dígito verificador inválido devolve 404. CPF válido devolve 200 com "
 					+ "ABLE_TO_VOTE ou UNABLE_TO_VOTE, sorteados no modo ALEATORIO e sempre apto no modo SEMPRE_APTO.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "CPF válido, com o status de autorização do associado"),
+			@ApiResponse(responseCode = "404", description = "CPF com formato ou dígito verificador inválido, "
+					+ "devolvido sem corpo como faria o provedor real", content = @Content)
+	})
 	@GetMapping("/{cpf}")
 	public ResponseEntity<AutorizacaoCpfResponse> consultar(@PathVariable String cpf) {
 		// 404 para CPF malformado, e nao 400, por exigencia explicita do enunciado.
